@@ -29,6 +29,10 @@ var (
 	Parede     = Elemento{'▤', CorParede, CorFundoParede, true}
 	Vegetacao  = Elemento{'♣', CorVerde, CorPadrao, false}
 	Vazio      = Elemento{' ', CorPadrao, CorPadrao, false}
+	Tiro	  = Elemento{'*', CorAmarelo, CorPadrao, true}
+	Boss	  = Elemento{'♡', CorVermelho, CorPadrao, true}
+	Explosao  = Elemento{'*', CorVermelho, CorPadrao, true}
+	Radiativo  = Elemento{'☢', CorVerde, CorPadrao, true}
 )
 
 // Cria e retorna uma nova instância do jogo

@@ -14,14 +14,29 @@ type Cor = termbox.Attribute
 
 // Definições de cores utilizadas no jogo
 const (
-	CorPadrao     Cor = termbox.ColorDefault
-	CorCinzaEscuro    = termbox.ColorDarkGray
-	CorVermelho       = termbox.ColorRed
-	CorVerde          = termbox.ColorGreen
-	CorParede         = termbox.ColorBlack | termbox.AttrBold | termbox.AttrDim
-	CorFundoParede    = termbox.ColorDarkGray
-	CorTexto          = termbox.ColorDarkGray
+	CorPadrao        Cor = termbox.ColorDefault
+	CorPreto             = termbox.ColorBlack
+	CorVermelho          = termbox.ColorRed
+	CorVerde             = termbox.ColorGreen
+	CorAmarelo           = termbox.ColorYellow
+	CorAzul              = termbox.ColorBlue
+	CorMagenta           = termbox.ColorMagenta
+	CorCiano             = termbox.ColorCyan
+	CorBranco            = termbox.ColorWhite
+
+	// Personalizações
+	CorCinzaEscuro       = termbox.ColorDarkGray
+	CorTexto             = termbox.ColorDarkGray
+	CorParede            = termbox.ColorBlack | termbox.AttrBold | termbox.AttrDim
+	CorFundoParede       = termbox.ColorDarkGray
+
+	// Atributos de estilo (podem ser usados junto das cores)
+	AttrNegrito          = termbox.AttrBold
+	AttrSublinhado       = termbox.AttrUnderline
+	AttrPiscando         = termbox.AttrBlink // (se suportado pelo terminal)
+	AttrInverso          = termbox.AttrReverse
 )
+
 
 // EventoTeclado representa uma ação detectada do teclado (como mover, sair ou interagir)
 type EventoTeclado struct {
