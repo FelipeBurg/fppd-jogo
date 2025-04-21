@@ -26,19 +26,30 @@ func main() {
 	// Desenha o estado inicial do jogo
 	interfaceDesenharJogo(&jogo)
 
-	// Lança uma goroutine para cada inimigo
-	for i := range jogo.Inimigos {
-		inimigo := &jogo.Inimigos[i]
-		go func(inimigo *InimigoMovel) {
-			for {
-				// Mover o inimigo
-				moverInimigo(inimigo, &jogo)
-				// Atualiza a tela após o movimento
-				interfaceDesenharJogo(&jogo)
-				time.Sleep(500 * time.Millisecond) // Aguarda antes de mover novamente
-			}
-		}(inimigo)
-	}
+	// No main.go, dentro do loop de inicialização
+for i := range jogo.Inimigos {
+	inimigo := &jogo.Inimigos[i]
+	go func(inimigo *InimigoMovel) {
+		for {
+			moverInimigo(inimigo, &jogo)
+			interfaceDesenharJogo(&jogo) // Atualiza a tela após o movimento
+			time.Sleep(300 * time.Millisecond)
+		}
+	}(inimigo)
+}
+
+// Lança uma goroutine para cada alien (movimento vertical)
+for i := range jogo.Aliens {
+	alien := &jogo.Aliens[i]
+	go func(alien *AlienMovel) {
+		for {
+			moverAlien(alien, &jogo)
+			interfaceDesenharJogo(&jogo) // Atualiza a tela após o movimento
+			time.Sleep(300 * time.Millisecond)
+		}
+	}(alien)
+}
+
 
 	// Loop principal de entrada
 	for {

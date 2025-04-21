@@ -19,7 +19,10 @@ type InimigoMovel struct {
 	X, Y     int
 	Direita  bool
 }
-
+type AlienMovel struct {
+	X, Y     int
+	Subindo  bool
+}
 // Jogo contém o estado atual do jogo
 type Jogo struct {
 	Mapa            [][]Elemento // grade 2D representando o mapa
@@ -27,6 +30,7 @@ type Jogo struct {
 	UltimoVisitado  Elemento     // elemento que estava na posição do personagem antes de mover
 	StatusMsg       string       // mensagem para a barra de status
 	Inimigos       []InimigoMovel // inimigos móveis
+	Aliens			[]AlienMovel // aliens móveis
 	Mutex          sync.Mutex     // para proteger o mapa
 }
 
@@ -75,6 +79,11 @@ func jogoCarregarMapa(nome string, jogo *Jogo) error {
 					X: x, Y: y, Direita: true,
 				})
 				e = Vazio // Remove do mapa estático, para a goroutine cuidar do desenho			
+			case Alien.simbolo:
+				jogo.Aliens = append(jogo.Aliens, AlienMovel{
+					X: x, Y: y, Subindo: true,
+				})
+				e = Vazio
 			case Vegetacao.simbolo:
 				e = Vegetacao
 			case Personagem.simbolo:
@@ -152,6 +161,45 @@ func moverInimigo(inimigo *InimigoMovel, jogo *Jogo) {
 	inimigo.X = nx
 	inimigo.Y = ny
 }
+
+func moverAlien(alien *AlienMovel, jogo *Jogo) {
+	jogo.Mutex.Lock() // Garantir que o mapa não será alterado por outra goroutine enquanto esse inimigo se move
+	defer jogo.Mutex.Unlock()
+
+	dy := 1
+	if !alien.Subindo {
+		dy = -1
+	}
+	nx := alien.X
+	ny := alien.Y + dy // Mudando a posição no eixo Y, para o movimento vertical
+
+	// Verifica se a nova posição 'ny' está dentro dos limites do mapa
+	if ny < 0 || ny >= len(jogo.Mapa) {
+		alien.Subindo = !alien.Subindo // Inverte a direção se atingir o limite do mapa
+		return
+	}
+
+	// Verifica se a posição é válida antes de acessar o mapa
+	if ny >= 0 && ny < len(jogo.Mapa) && nx >= 0 && nx < len(jogo.Mapa[ny]) {
+		destino := jogo.Mapa[ny][nx]
+		if destino.tangivel || (jogo.PosX == nx && jogo.PosY == ny) {
+			alien.Subindo = !alien.Subindo // Inverte a direção se o alien bater em algo
+			return
+		}
+
+		// Move o alien
+		jogo.Mapa[alien.Y][alien.X] = Vazio    // Limpa a posição anterior do alien
+		jogo.Mapa[ny][nx] = Alien              // Coloca o alien na nova posição
+		alien.X = nx                            // Atualiza a posição X
+		alien.Y = ny                            // Atualiza a posição Y
+	}
+}
+
+
+
+
+
+
 
 
 
