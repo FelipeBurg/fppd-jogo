@@ -4,6 +4,7 @@ package main
 import (
 	"bufio"
 	"os"
+	"sync"
 )
 
 // Elemento representa qualquer objeto do mapa (parede, personagem, vegetação, etc)
@@ -14,12 +15,19 @@ type Elemento struct {
 	tangivel  bool // Indica se o elemento bloqueia passagem
 }
 
+type InimigoMovel struct {
+	X, Y     int
+	Direita  bool
+}
+
 // Jogo contém o estado atual do jogo
 type Jogo struct {
 	Mapa            [][]Elemento // grade 2D representando o mapa
 	PosX, PosY      int          // posição atual do personagem
 	UltimoVisitado  Elemento     // elemento que estava na posição do personagem antes de mover
 	StatusMsg       string       // mensagem para a barra de status
+	Inimigos       []InimigoMovel // inimigos móveis
+	Mutex          sync.Mutex     // para proteger o mapa
 }
 
 // Elementos visuais do jogo
@@ -33,6 +41,8 @@ var (
 	Boss	  = Elemento{'♡', CorVermelho, CorPadrao, true}
 	Explosao  = Elemento{'*', CorVermelho, CorPadrao, true}
 	Radiativo  = Elemento{'☢', CorVerde, CorPadrao, true}
+	Alien = Elemento{'Ψ', CorCiano, CorPadrao, true}
+
 )
 
 // Cria e retorna uma nova instância do jogo
@@ -61,7 +71,10 @@ func jogoCarregarMapa(nome string, jogo *Jogo) error {
 			case Parede.simbolo:
 				e = Parede
 			case Inimigo.simbolo:
-				e = Inimigo
+				jogo.Inimigos = append(jogo.Inimigos, InimigoMovel{
+					X: x, Y: y, Direita: true,
+				})
+				e = Vazio // Remove do mapa estático, para a goroutine cuidar do desenho			
 			case Vegetacao.simbolo:
 				e = Vegetacao
 			case Personagem.simbolo:
@@ -110,3 +123,36 @@ func jogoMoverElemento(jogo *Jogo, x, y, dx, dy int) {
 	jogo.UltimoVisitado = jogo.Mapa[ny][nx]   // guarda o conteúdo atual da nova posição
 	jogo.Mapa[ny][nx] = elemento              // move o elemento
 }
+
+func moverInimigo(inimigo *InimigoMovel, jogo *Jogo) {
+	jogo.Mutex.Lock() // Garantir que o mapa não será alterado por outra goroutine enquanto esse inimigo se move
+	defer jogo.Mutex.Unlock()
+
+	dx := 1
+	if !inimigo.Direita {
+		dx = -1
+	}
+	nx := inimigo.X + dx
+	ny := inimigo.Y
+
+	if nx < 0 || nx >= len(jogo.Mapa[0]) {
+		inimigo.Direita = !inimigo.Direita
+		return
+	}
+
+	destino := jogo.Mapa[ny][nx]
+	if destino.tangivel || (jogo.PosX == nx && jogo.PosY == ny) {
+		inimigo.Direita = !inimigo.Direita
+		return
+	}
+
+	// Move o inimigo
+	jogo.Mapa[inimigo.Y][inimigo.X] = Vazio
+	jogo.Mapa[ny][nx] = Inimigo
+	inimigo.X = nx
+	inimigo.Y = ny
+}
+
+
+
+
