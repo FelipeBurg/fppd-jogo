@@ -67,3 +67,4 @@ for i := range jogo.Aliens {
 		atualizarTela <- true // Sinaliza para a interface desenhar após a ação
 	}
 }
+

@@ -46,7 +46,7 @@ var (
 	Vegetacao  = Elemento{'♣', CorVerde, CorPadrao, false}
 	Vazio      = Elemento{' ', CorPadrao, CorPadrao, false}
 	Tiro       = Elemento{'*', CorAmarelo, CorPadrao, true}
-	Boss       = Elemento{'♡', CorVermelho, CorPadrao, true}
+	Coracao       = Elemento{'♡', CorVermelho, CorPadrao, true}
 	Explosao   = Elemento{'*', CorVermelho, CorPadrao, true}
 	Radiativo  = Elemento{'☢', CorVerde, CorPadrao, true}
 	Alien      = Elemento{'Ψ', CorCiano, CorPadrao, true}
@@ -90,6 +90,10 @@ func jogoCarregarMapa(nome string, jogo *Jogo) error {
 				e = Vazio
 			case Vegetacao.simbolo:
 				e = Vegetacao
+			case Coracao.simbolo:
+				e = Coracao
+			case Radiativo.simbolo:
+				e = Radiativo
 			case Personagem.simbolo:
 				jogo.PosX, jogo.PosY = x, y // registra a posição inicial do personagem
 			}
@@ -192,13 +196,13 @@ func moverAlien(alien *AlienMovel, jogo *Jogo) {
 	nx := alien.X
 	ny := alien.Y + dy
 
-	if ny < 0 || ny >= len(jogo.Mapa) {
+	// Verifica se está dentro dos limites do mapa
+	if ny < 0 || ny >= len(jogo.Mapa) || nx < 0 || nx >= len(jogo.Mapa[ny]) {
 		alien.Subindo = !alien.Subindo
 		return
 	}
 
-	// Colisão com jogador
-
+	// Colisão com o jogador
 	if nx == jogo.PosX && ny == jogo.PosY {
 		if time.Since(jogo.UltimoDano) > time.Second {
 			jogo.Vida--
@@ -210,11 +214,9 @@ func moverAlien(alien *AlienMovel, jogo *Jogo) {
 		}
 		return
 	}
-	
 
-	// Verifica colisão com obstáculos
-	destino := jogo.Mapa[ny][nx]
-	if destino.tangivel {
+	// Impede movimento para paredes
+	if jogo.Mapa[ny][nx].tangivel {
 		alien.Subindo = !alien.Subindo
 		return
 	}
@@ -225,6 +227,9 @@ func moverAlien(alien *AlienMovel, jogo *Jogo) {
 	alien.X = nx
 	alien.Y = ny
 }
+
+	
+
 
 
 
