@@ -5,6 +5,8 @@ import (
 	"bufio"
 	"os"
 	"sync"
+	"fmt"
+	"time"
 )
 
 // Elemento representa qualquer objeto do mapa (parede, personagem, vegetação, etc)
@@ -12,7 +14,7 @@ type Elemento struct {
 	simbolo   rune
 	cor       Cor
 	corFundo  Cor
-	tangivel  bool // Indica se o elemento bloqueia passagem
+	tangivel  bool 
 }
 
 type InimigoMovel struct {
@@ -32,6 +34,8 @@ type Jogo struct {
 	Inimigos       []InimigoMovel // inimigos móveis
 	Aliens			[]AlienMovel // aliens móveis
 	Mutex          sync.Mutex     // para proteger o mapa
+	Vida            int 
+	UltimoDano     time.Time
 }
 
 // Elementos visuais do jogo
@@ -41,19 +45,19 @@ var (
 	Parede     = Elemento{'▤', CorParede, CorFundoParede, true}
 	Vegetacao  = Elemento{'♣', CorVerde, CorPadrao, false}
 	Vazio      = Elemento{' ', CorPadrao, CorPadrao, false}
-	Tiro	  = Elemento{'*', CorAmarelo, CorPadrao, true}
-	Boss	  = Elemento{'♡', CorVermelho, CorPadrao, true}
-	Explosao  = Elemento{'*', CorVermelho, CorPadrao, true}
+	Tiro       = Elemento{'*', CorAmarelo, CorPadrao, true}
+	Boss       = Elemento{'♡', CorVermelho, CorPadrao, true}
+	Explosao   = Elemento{'*', CorVermelho, CorPadrao, true}
 	Radiativo  = Elemento{'☢', CorVerde, CorPadrao, true}
-	Alien = Elemento{'Ψ', CorCiano, CorPadrao, true}
-
+	Alien      = Elemento{'Ψ', CorCiano, CorPadrao, true}
 )
+
 
 // Cria e retorna uma nova instância do jogo
 func jogoNovo() Jogo {
 	// O ultimo elemento visitado é inicializado como vazio
 	// pois o jogo começa com o personagem em uma posição vazia
-	return Jogo{UltimoVisitado: Vazio}
+	return Jogo{UltimoVisitado: Vazio, Vida: 3, UltimoDano: time.Now().Add(-10 * time.Second),}
 }
 
 // Lê um arquivo texto linha por linha e constrói o mapa do jogo
@@ -134,7 +138,7 @@ func jogoMoverElemento(jogo *Jogo, x, y, dx, dy int) {
 }
 
 func moverInimigo(inimigo *InimigoMovel, jogo *Jogo) {
-	jogo.Mutex.Lock() // Garantir que o mapa não será alterado por outra goroutine enquanto esse inimigo se move
+	jogo.Mutex.Lock()
 	defer jogo.Mutex.Unlock()
 
 	dx := 1
@@ -144,14 +148,28 @@ func moverInimigo(inimigo *InimigoMovel, jogo *Jogo) {
 	nx := inimigo.X + dx
 	ny := inimigo.Y
 
+	// Verifica se a posição é válida
 	if nx < 0 || nx >= len(jogo.Mapa[0]) {
 		inimigo.Direita = !inimigo.Direita
 		return
 	}
 
+
+	// Impede movimento para paredes
 	destino := jogo.Mapa[ny][nx]
-	if destino.tangivel || (jogo.PosX == nx && jogo.PosY == ny) {
+	if destino.tangivel {
 		inimigo.Direita = !inimigo.Direita
+		return
+	}
+	if jogo.PosX == nx && jogo.PosY == ny {
+		if time.Since(jogo.UltimoDano) > time.Second {
+			jogo.Vida--
+			jogo.UltimoDano = time.Now()
+			jogo.StatusMsg = fmt.Sprintf("☠ Você foi atingido por um inimigo! Vida: %d", jogo.Vida)
+			if jogo.Vida <= 0 {
+				jogo.StatusMsg = "💀 GAME OVER"
+			}
+		}
 		return
 	}
 
@@ -162,8 +180,9 @@ func moverInimigo(inimigo *InimigoMovel, jogo *Jogo) {
 	inimigo.Y = ny
 }
 
+
 func moverAlien(alien *AlienMovel, jogo *Jogo) {
-	jogo.Mutex.Lock() // Garantir que o mapa não será alterado por outra goroutine enquanto esse inimigo se move
+	jogo.Mutex.Lock()
 	defer jogo.Mutex.Unlock()
 
 	dy := 1
@@ -171,29 +190,42 @@ func moverAlien(alien *AlienMovel, jogo *Jogo) {
 		dy = -1
 	}
 	nx := alien.X
-	ny := alien.Y + dy // Mudando a posição no eixo Y, para o movimento vertical
+	ny := alien.Y + dy
 
-	// Verifica se a nova posição 'ny' está dentro dos limites do mapa
 	if ny < 0 || ny >= len(jogo.Mapa) {
-		alien.Subindo = !alien.Subindo // Inverte a direção se atingir o limite do mapa
+		alien.Subindo = !alien.Subindo
 		return
 	}
 
-	// Verifica se a posição é válida antes de acessar o mapa
-	if ny >= 0 && ny < len(jogo.Mapa) && nx >= 0 && nx < len(jogo.Mapa[ny]) {
-		destino := jogo.Mapa[ny][nx]
-		if destino.tangivel || (jogo.PosX == nx && jogo.PosY == ny) {
-			alien.Subindo = !alien.Subindo // Inverte a direção se o alien bater em algo
-			return
-		}
+	// Colisão com jogador
 
-		// Move o alien
-		jogo.Mapa[alien.Y][alien.X] = Vazio    // Limpa a posição anterior do alien
-		jogo.Mapa[ny][nx] = Alien              // Coloca o alien na nova posição
-		alien.X = nx                            // Atualiza a posição X
-		alien.Y = ny                            // Atualiza a posição Y
+	if nx == jogo.PosX && ny == jogo.PosY {
+		if time.Since(jogo.UltimoDano) > time.Second {
+			jogo.Vida--
+			jogo.UltimoDano = time.Now()
+			jogo.StatusMsg = fmt.Sprintf("Ψ Alien te atingiu! Vida: %d", jogo.Vida)
+			if jogo.Vida <= 0 {
+				jogo.StatusMsg = "💀 GAME OVER"
+			}
+		}
+		return
 	}
+	
+
+	// Verifica colisão com obstáculos
+	destino := jogo.Mapa[ny][nx]
+	if destino.tangivel {
+		alien.Subindo = !alien.Subindo
+		return
+	}
+
+	// Move o alien
+	jogo.Mapa[alien.Y][alien.X] = Vazio
+	jogo.Mapa[ny][nx] = Alien
+	alien.X = nx
+	alien.Y = ny
 }
+
 
 
 

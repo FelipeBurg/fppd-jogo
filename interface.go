@@ -75,6 +75,15 @@ func interfaceLerEventoTeclado() EventoTeclado {
 func interfaceDesenharJogo(jogo *Jogo) {
 	interfaceLimparTela()
 
+	_, termHeight := termbox.Size()
+	mapHeight := len(jogo.Mapa)
+	statusY := mapHeight + 3
+
+	if statusY >= termHeight {
+		jogo.StatusMsg = "⛔ Aumente o tamanho da janela do terminal!"
+		return
+	}
+
 	// Desenha todos os elementos do mapa
 	for y, linha := range jogo.Mapa {
 		for x, elem := range linha {
@@ -105,6 +114,7 @@ func interfaceAtualizarTela() {
 // Desenha um elemento na posição (x, y)
 func interfaceDesenharElemento(x, y int, elem Elemento) {
 	termbox.SetCell(x, y, elem.simbolo, elem.cor, elem.corFundo)
+	
 }
 
 // Exibe uma barra de status com informações úteis ao jogador
@@ -114,10 +124,22 @@ func interfaceDesenharBarraDeStatus(jogo *Jogo) {
 		termbox.SetCell(i, len(jogo.Mapa)+1, c, CorTexto, CorPadrao)
 	}
 
+	// Desenhar corações da vida (♥♥♥)
+	for i := 0; i < 3; i++ {
+		coracao := '♥'
+		cor := CorVermelho
+		if i >= jogo.Vida {
+			coracao = '♡' // coração vazio
+			cor = CorTexto
+		}
+		termbox.SetCell(70+i*2, len(jogo.Mapa)+1, coracao, cor, CorPadrao)
+	}
+
 	// Instruções fixas
 	msg := "Use WASD para mover e E para interagir. ESC para sair."
 	for i, c := range msg {
 		termbox.SetCell(i, len(jogo.Mapa)+3, c, CorTexto, CorPadrao)
 	}
 }
+
 

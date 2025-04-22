@@ -7,19 +7,33 @@ import "fmt"
 func personagemMover(tecla rune, jogo *Jogo) {
 	dx, dy := 0, 0
 	switch tecla {
-	case 'w': dy = -1 // Move para cima
-	case 'a': dx = -1 // Move para a esquerda
-	case 's': dy = 1  // Move para baixo
-	case 'd': dx = 1  // Move para a direita
+	case 'w': dy = -1
+	case 'a': dx = -1
+	case 's': dy = 1
+	case 'd': dx = 1
 	}
 
 	nx, ny := jogo.PosX+dx, jogo.PosY+dy
-	// Verifica se o movimento é permitido e realiza a movimentação
+
+	// Verifica se há um inimigo no destino
+	if ny >= 0 && ny < len(jogo.Mapa) && nx >= 0 && nx < len(jogo.Mapa[ny]) {
+		enemigo := jogo.Mapa[ny][nx]
+		if enemigo.simbolo == Inimigo.simbolo || enemigo.simbolo == Alien.simbolo {
+			jogo.Vida--
+			jogo.StatusMsg = fmt.Sprintf("Você foi atingido! Vida restante: %d", jogo.Vida)
+			if jogo.Vida <= 0 {
+				jogo.StatusMsg = "💀 GAME OVER"
+				return
+			}
+		}
+	}
+
 	if jogoPodeMoverPara(jogo, nx, ny) {
 		jogoMoverElemento(jogo, jogo.PosX, jogo.PosY, dx, dy)
 		jogo.PosX, jogo.PosY = nx, ny
 	}
 }
+
 
 // Define o que ocorre quando o jogador pressiona a tecla de interação
 // Neste exemplo, apenas exibe uma mensagem de status
