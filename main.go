@@ -23,8 +23,15 @@ func main() {
 		panic(err)
 	}
 
-	// Desenha o estado inicial do jogo
-	interfaceDesenharJogo(&jogo)
+	atualizarTela := make(chan bool)
+
+	// Goroutine para redesenhar a tela periodicamente
+	go func() {
+		for {
+			<-atualizarTela // Espera pelo sinal de que é hora de desenhar
+			interfaceDesenharJogo(&jogo) // Atualiza a tela
+		}
+	}()
 
 	// No main.go, dentro do loop de inicialização
 for i := range jogo.Inimigos {
@@ -32,7 +39,7 @@ for i := range jogo.Inimigos {
 	go func(inimigo *InimigoMovel) {
 		for {
 			moverInimigo(inimigo, &jogo)
-			interfaceDesenharJogo(&jogo) // Atualiza a tela após o movimento
+			atualizarTela <- true // Sinaliza que a tela deve ser atualizada
 			time.Sleep(300 * time.Millisecond)
 		}
 	}(inimigo)
@@ -44,7 +51,7 @@ for i := range jogo.Aliens {
 	go func(alien *AlienMovel) {
 		for {
 			moverAlien(alien, &jogo)
-			interfaceDesenharJogo(&jogo) // Atualiza a tela após o movimento
+			atualizarTela <- true // Sinaliza que a tela deve ser atualizada
 			time.Sleep(300 * time.Millisecond)
 		}
 	}(alien)
@@ -57,6 +64,6 @@ for i := range jogo.Aliens {
 		if continuar := personagemExecutarAcao(evento, &jogo); !continuar {
 			break
 		}
-		interfaceDesenharJogo(&jogo) // Atualiza a tela após a ação do jogador
+		atualizarTela <- true // Sinaliza para a interface desenhar após a ação
 	}
 }
